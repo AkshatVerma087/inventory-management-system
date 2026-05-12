@@ -1,0 +1,2866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Allo Health — Implementation Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── TOKENS ── */
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --border2: #243350;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --green: #10b981;
+    --green-dim: #065f46;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --day1: #1d4ed8;
+    --day2: #059669;
+    --purple: #7c3aed;
+    --tag-bg: #0f172a;
+    --done-bg: #052e16;
+    --done-border: #166534;
+    --done-text: #6ee7b7;
+    --radius: 10px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sidebar-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-brand .logo-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-brand h1 {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .sidebar-brand .sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .progress-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .progress-pct {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  .progress-bar-bg {
+    height: 4px;
+    background: var(--border2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .progress-counts {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .progress-count {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .progress-count span {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Nav */
+  .sidebar-nav {
+    padding: 12px 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .nav-section-label {
+    padding: 10px 24px 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 24px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  .nav-item:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-left-color: var(--border2);
+  }
+
+  .nav-item.active {
+    background: rgba(59,130,246,0.08);
+    color: var(--accent2);
+    border-left-color: var(--accent);
+  }
+
+  .nav-item .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .nav-item.done .nav-dot { background: var(--green); }
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  .nav-item .nav-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .nav-day-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 12px 24px 4px;
+  }
+
+  .nav-day-badge.day1 { background: rgba(29,78,216,0.2); color: #93c5fd; border: 1px solid rgba(29,78,216,0.4); }
+  .nav-day-badge.day2 { background: rgba(5,150,105,0.2); color: #6ee7b7; border: 1px solid rgba(5,150,105,0.4); }
+
+  /* ── MAIN ── */
+  .main {
+    padding: 48px 56px;
+    max-width: 960px;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    margin-bottom: 56px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .page-header p {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 580px;
+    line-height: 1.7;
+  }
+
+  .header-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--tag-bg);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+
+  .tag .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── DAY SECTION ── */
+  .day-section {
+    margin-bottom: 64px;
+  }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .day-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  .day-header.day1 { border-color: rgba(29,78,216,0.4); background: rgba(29,78,216,0.06); }
+  .day-header.day1::before { background: linear-gradient(135deg, #1d4ed8, transparent); }
+  .day-header.day2 { border-color: rgba(5,150,105,0.4); background: rgba(5,150,105,0.06); }
+  .day-header.day2::before { background: linear-gradient(135deg, #059669, transparent); }
+
+  .day-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .day-badge.day1 { background: rgba(29,78,216,0.25); color: #93c5fd; border: 1px solid rgba(29,78,216,0.5); }
+  .day-badge.day2 { background: rgba(5,150,105,0.25); color: #6ee7b7; border: 1px solid rgba(5,150,105,0.5); }
+
+  .day-info h2 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .day-info .day-meta {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+  }
+
+  .day-info .day-meta .pill {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .pill.day1 { background: rgba(29,78,216,0.2); color: #93c5fd; }
+  .pill.day2 { background: rgba(5,150,105,0.2); color: #6ee7b7; }
+
+  .day-progress {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .day-progress .day-pct {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+    line-height: 1;
+  }
+
+  .day-progress .day-pct.day1 { color: #93c5fd; }
+  .day-progress .day-pct.day2 { color: #6ee7b7; }
+
+  .day-progress .day-pct-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── PHASE ── */
+  .phase {
+    margin-bottom: 40px;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .phase-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .phase-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .phase-toggle {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    transition: transform 0.2s;
+  }
+
+  .phase-header.collapsed .phase-toggle { transform: rotate(-90deg); }
+
+  .phase-step-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .phase-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  /* ── STEP CARD ── */
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .step-card:hover { border-color: var(--border2); }
+
+  .step-card.done {
+    background: var(--done-bg);
+    border-color: var(--done-border);
+  }
+
+  .step-card.done .step-title { color: var(--done-text); text-decoration: line-through; text-decoration-color: #166534; }
+  .step-card.done .step-desc { opacity: 0.5; }
+
+  .step-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    cursor: pointer;
+  }
+
+  /* Checkbox */
+  .step-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .step-check:hover { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+  .step-check.checked { background: var(--green); border-color: var(--green); }
+  .step-check .check-icon { display: none; }
+  .step-check.checked .check-icon { display: block; }
+  .step-check .check-icon svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 3; fill: none; }
+
+  .step-content { flex: 1; min-width: 0; }
+
+  .step-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+
+  .step-id {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .step-layer {
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .layer-setup     { background: rgba(124,58,237,0.15); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.3); }
+  .layer-db        { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+  .layer-repo      { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+  .layer-service   { background: rgba(239,68,68,0.12);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+  .layer-ctrl      { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+  .layer-route     { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+  .layer-redis     { background: rgba(239,68,68,0.12);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+  .layer-ui        { background: rgba(14,165,233,0.12); color: #7dd3fc; border: 1px solid rgba(14,165,233,0.25); }
+  .layer-deploy    { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+  .layer-test      { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+  .layer-schema    { background: rgba(236,72,153,0.12); color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
+
+  .step-priority {
+    font-size: 9px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .priority-critical { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+  .priority-high     { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+  .priority-medium   { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+
+  .step-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .step-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .step-expand-btn {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  .step-expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .step-card.expanded .step-expand-btn { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: var(--accent2); }
+
+  /* Step detail */
+  .step-detail {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 18px 18px 18px 52px;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .step-card.expanded .step-detail { display: block; }
+
+  .detail-section { margin-bottom: 16px; }
+  .detail-section:last-child { margin-bottom: 0; }
+
+  .detail-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .detail-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .detail-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #94a3b8;
+    line-height: 1.55;
+  }
+
+  .detail-list li::before {
+    content: '→';
+    color: var(--accent);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 11px;
+  }
+
+  .detail-warn {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.07);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.5;
+  }
+
+  .detail-warn .warn-icon { flex-shrink: 0; margin-top: 1px; }
+
+  .detail-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(59,130,246,0.07);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #93c5fd;
+    line-height: 1.5;
+  }
+
+  .file-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #7dd3fc;
+  }
+
+  .file-paths {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  /* ── CONTROLS ── */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent2); background: rgba(59,130,246,0.06); }
+  .ctrl-btn.danger:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.06); }
+  .ctrl-btn.success { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.06); }
+
+  .filter-group {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .filter-btn {
+    padding: 4px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .filter-btn.active { background: var(--accent); color: #fff; }
+  .filter-btn:hover:not(.active) { color: var(--text); }
+
+  /* ── CHECKLIST (final) ── */
+  .checklist-section {
+    margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .checklist-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .checklist-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .checklist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .check-item:hover { border-color: var(--border2); }
+  .check-item.done { background: var(--done-bg); border-color: var(--done-border); }
+
+  .check-item .ci-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.2s;
+  }
+
+  .check-item.done .ci-box { background: var(--green); border-color: var(--green); }
+  .check-item.done .ci-box svg { display: block; }
+  .check-item .ci-box svg { display: none; width: 10px; height: 10px; stroke: #fff; stroke-width: 3; fill: none; }
+
+  .check-item .ci-text {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .check-item.done .ci-text { color: var(--done-text); text-decoration: line-through; text-decoration-color: #166534; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .phase { animation: fadeIn 0.4s ease both; }
+  .phase:nth-child(1) { animation-delay: 0.05s; }
+  .phase:nth-child(2) { animation-delay: 0.1s; }
+  .phase:nth-child(3) { animation-delay: 0.15s; }
+  .phase:nth-child(4) { animation-delay: 0.2s; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    pointer-events: none;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast .toast-icon { font-size: 16px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; }
+    .main { padding: 24px 20px; }
+    .checklist-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-label">Allo Health · Eng</div>
+      <h1>Implementation<br>Roadmap</h1>
+      <div class="sub">Inventory Reservation System</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span class="progress-label">Overall Progress</span>
+        <span class="progress-pct" id="globalPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="globalBar"></div>
+      </div>
+      <div class="progress-counts">
+        <div class="progress-count"><span id="doneCount">0</span> done</div>
+        <div class="progress-count"><span id="totalCount">0</span> total</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-day-badge day1">Day 1 — Backend</div>
+      <a class="nav-item" href="#phase-setup" data-phase="phase-setup">
+        <span class="nav-dot"></span> Project Setup
+        <span class="nav-count" id="nav-count-phase-setup">—</span>
+      </a>
+      <a class="nav-item" href="#phase-db" data-phase="phase-db">
+        <span class="nav-dot"></span> Database & Prisma
+        <span class="nav-count" id="nav-count-phase-db">—</span>
+      </a>
+      <a class="nav-item" href="#phase-repo" data-phase="phase-repo">
+        <span class="nav-dot"></span> Repository Layer
+        <span class="nav-count" id="nav-count-phase-repo">—</span>
+      </a>
+      <a class="nav-item" href="#phase-service" data-phase="phase-service">
+        <span class="nav-dot"></span> Service Layer
+        <span class="nav-count" id="nav-count-phase-service">—</span>
+      </a>
+      <a class="nav-item" href="#phase-ctrl" data-phase="phase-ctrl">
+        <span class="nav-dot"></span> Controller Layer
+        <span class="nav-count" id="nav-count-phase-ctrl">—</span>
+      </a>
+      <a class="nav-item" href="#phase-routes" data-phase="phase-routes">
+        <span class="nav-dot"></span> API Routes
+        <span class="nav-count" id="nav-count-phase-routes">—</span>
+      </a>
+      <a class="nav-item" href="#phase-redis" data-phase="phase-redis">
+        <span class="nav-dot"></span> Redis & Locking
+        <span class="nav-count" id="nav-count-phase-redis">—</span>
+      </a>
+
+      <div class="nav-day-badge day2">Day 2 — Frontend</div>
+      <a class="nav-item" href="#phase-ui" data-phase="phase-ui">
+        <span class="nav-dot"></span> UI Setup & shadcn
+        <span class="nav-count" id="nav-count-phase-ui">—</span>
+      </a>
+      <a class="nav-item" href="#phase-pages" data-phase="phase-pages">
+        <span class="nav-dot"></span> Pages & Components
+        <span class="nav-count" id="nav-count-phase-pages">—</span>
+      </a>
+      <a class="nav-item" href="#phase-deploy" data-phase="phase-deploy">
+        <span class="nav-dot"></span> Deployment
+        <span class="nav-count" id="nav-count-phase-deploy">—</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <div class="page-header">
+      <div class="eyebrow">2-Day Implementation Plan</div>
+      <h1>Inventory Reservation<br>System</h1>
+      <p>A detailed, step-by-step engineering roadmap for building a race-condition-free inventory reservation platform. Click any step to expand its details. Check the box to mark it done.</p>
+      <div class="header-tags">
+        <span class="tag"><span class="dot" style="background:#93c5fd"></span>Next.js 14</span>
+        <span class="tag"><span class="dot" style="background:#fcd34d"></span>PostgreSQL</span>
+        <span class="tag"><span class="dot" style="background:#fca5a5"></span>Redis</span>
+        <span class="tag"><span class="dot" style="background:#f9a8d4"></span>Zod</span>
+        <span class="tag"><span class="dot" style="background:#7dd3fc"></span>shadcn/ui</span>
+        <span class="tag"><span class="dot" style="background:#6ee7b7"></span>Vercel</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="expandAll()">↕ Expand All</button>
+      <button class="ctrl-btn" onclick="collapseAll()">↕ Collapse All</button>
+      <button class="ctrl-btn danger" onclick="resetAll()">↺ Reset</button>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterSteps('all', this)">All</button>
+        <button class="filter-btn" onclick="filterSteps('todo', this)">To Do</button>
+        <button class="filter-btn" onclick="filterSteps('done', this)">Done</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- DAY 1 -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="day-section">
+      <div class="day-header day1">
+        <div class="day-badge day1">1</div>
+        <div class="day-info">
+          <h2>Backend + Infrastructure</h2>
+          <div class="day-meta">
+            <span class="pill day1">Day 1</span>
+            <span>Est. 8–10 hours</span>
+          </div>
+        </div>
+        <div class="day-progress">
+          <span class="day-pct day1" id="day1-pct">0%</span>
+          <div class="day-pct-label">complete</div>
+        </div>
+      </div>
+
+      <!-- Phase: Setup -->
+      <div class="phase" id="phase-setup">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 1</span>
+          <span class="phase-title">Project Initialization & Environment</span>
+          <span class="phase-step-count" id="phase-setup-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-setup">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">1.1</span>
+                  <span class="step-layer layer-setup">Setup</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Scaffold the Next.js 14 project with App Router</div>
+                <div class="step-desc">Run create-next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src-dir flags. This is the foundation everything else is built on.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Command to run</div>
+                <div class="detail-note">npx create-next-app@latest allo-inventory --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"</div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Flags explained</div>
+                <ul class="detail-list">
+                  <li>--typescript: enables TypeScript throughout the project</li>
+                  <li>--tailwind: installs Tailwind CSS and generates tailwind.config.ts</li>
+                  <li>--app: uses the new App Router instead of legacy Pages Router</li>
+                  <li>--src-dir: all source files live in src/ instead of the project root</li>
+                  <li>--import-alias "@/*": allows importing from @/components instead of ../../components</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Why App Router?</div>
+                <ul class="detail-list">
+                  <li>Server Components fetch data at render time — no useEffect data fetching needed on the listing page</li>
+                  <li>API Routes and Server Components live in the same deployment unit on Vercel</li>
+                  <li>Built-in support for streaming, React Suspense, and incremental static regeneration</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-setup">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">1.2</span>
+                  <span class="step-layer layer-setup">Setup</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Install all backend dependencies</div>
+                <div class="step-desc">Install Prisma, Zod, Upstash Redis, Upstash rate limiter, and shadcn/ui peer dependencies in one shot.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Core packages</div>
+                <ul class="detail-list">
+                  <li>prisma + @prisma/client — ORM and type-safe query client</li>
+                  <li>zod — schema validation, shared between API and frontend</li>
+                  <li>@upstash/redis — HTTP-based Redis client for serverless environments</li>
+                  <li>@upstash/ratelimit — rate limiting built on top of Upstash Redis</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">shadcn/ui peer deps (needed on Day 2)</div>
+                <ul class="detail-list">
+                  <li>@radix-ui/react-dialog, @radix-ui/react-slot — accessible primitive components</li>
+                  <li>lucide-react — icon set used by shadcn</li>
+                  <li>class-variance-authority, clsx, tailwind-merge — utility libraries for component variants</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Dev dependencies</div>
+                <ul class="detail-list">
+                  <li>ts-node — needed to run the Prisma seed file with TypeScript</li>
+                  <li>@hookform/resolvers — Zod adapter for React Hook Form (install on Day 2)</li>
+                  <li>react-hook-form — form state manager (install on Day 2)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-setup">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">1.3</span>
+                  <span class="step-layer layer-setup">Setup</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Configure environment variables (.env.local)</div>
+                <div class="step-desc">Create .env.local immediately and add it to .gitignore before the first commit. Populate all required keys from Supabase and Upstash dashboards.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Required environment variables</div>
+                <ul class="detail-list">
+                  <li>DATABASE_URL — PostgreSQL connection string (use pooler URL from Supabase/Neon)</li>
+                  <li>DIRECT_URL — direct connection URL for Prisma migrations (bypasses PgBouncer)</li>
+                  <li>UPSTASH_REDIS_REST_URL — REST endpoint from the Upstash Redis dashboard</li>
+                  <li>UPSTASH_REDIS_REST_TOKEN — auth token from the Upstash Redis dashboard</li>
+                  <li>RESERVATION_TTL_SECONDS — set to 600 (10-minute reservation window)</li>
+                  <li>CRON_SECRET — a random string to protect the expiry cron endpoint from public access</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  Add .env.local to .gitignore BEFORE making your first commit. One leaked credential in git history is permanent. DIRECT_URL must be separate from DATABASE_URL because Supabase's pooler (PgBouncer) blocks DDL statements required by Prisma migrations.
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Also create .env.example</div>
+                <ul class="detail-list">
+                  <li>Duplicate .env.local with all keys but empty values</li>
+                  <li>Commit .env.example to the repo so teammates know what variables are needed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-setup">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">1.4</span>
+                  <span class="step-layer layer-setup">Setup</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create the full folder structure</div>
+                <div class="step-desc">Manually create all directories: controllers/, services/, repositories/, lib/, schemas/, and types/. Empty folders signal the architecture to teammates immediately.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Folders to create under src/</div>
+                <ul class="detail-list">
+                  <li>controllers/ — one file per resource (product, warehouse, reservation)</li>
+                  <li>services/ — business logic, one file per resource</li>
+                  <li>repositories/ — all Prisma queries, one file per model</li>
+                  <li>lib/ — shared utilities: db.ts, redis.ts, lock.ts, errors.ts</li>
+                  <li>schemas/ — Zod schemas shared between API and frontend</li>
+                  <li>types/ — shared TypeScript interfaces and inferred Zod types</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-note">Place a .gitkeep file in each empty directory so git tracks them. The structure communicates the architecture before any code is written.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Database -->
+      <div class="phase" id="phase-db">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 2</span>
+          <span class="phase-title">Database Design & Prisma</span>
+          <span class="phase-step-count" id="phase-db-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-db">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">2.1</span>
+                  <span class="step-layer layer-db">Database</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Provision a hosted PostgreSQL database</div>
+                <div class="step-desc">Create a free-tier project on Supabase or Neon. Copy both the pooler connection URL (for DATABASE_URL) and the direct connection URL (for DIRECT_URL) into your .env.local.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Why hosted Postgres (not local)?</div>
+                <ul class="detail-list">
+                  <li>The exercise explicitly requires a hosted database — not local or SQLite</li>
+                  <li>SELECT FOR UPDATE NOWAIT is a PostgreSQL feature; SQLite does not support it</li>
+                  <li>Supabase and Neon both have free tiers that are more than sufficient</li>
+                  <li>The live Vercel deployment can connect to it immediately without extra config</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Supabase setup steps</div>
+                <ul class="detail-list">
+                  <li>Go to supabase.com → New project → choose a region close to your Vercel region</li>
+                  <li>Settings → Database → copy the URI under "Connection pooling" for DATABASE_URL</li>
+                  <li>Settings → Database → copy the URI under "Direct connection" for DIRECT_URL</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-db">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">2.2</span>
+                  <span class="step-layer layer-db">Database</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Initialise Prisma and write the schema</div>
+                <div class="step-desc">Run npx prisma init, then write the complete schema with all five models: Product, Warehouse, StockLevel, Reservation, and the ReservationStatus enum.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Models and key fields</div>
+                <ul class="detail-list">
+                  <li>Product: id (cuid), name, sku (unique), price (Decimal 10,2), imageUrl, description</li>
+                  <li>Warehouse: id (cuid), name, location</li>
+                  <li>StockLevel: productId, warehouseId, totalUnits, reservedUnits — unique([productId, warehouseId])</li>
+                  <li>Reservation: id, productId, warehouseId, quantity, status (enum), expiresAt, idempotencyKey (nullable unique), confirmedAt, releasedAt</li>
+                  <li>ReservationStatus enum: PENDING, CONFIRMED, RELEASED</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Design decisions explained</div>
+                <ul class="detail-list">
+                  <li>reservedUnits column: availableUnits = totalUnits - reservedUnits avoids expensive COUNT queries on reservations</li>
+                  <li>Decimal(10,2) for price: avoids floating-point errors on monetary values</li>
+                  <li>idempotencyKey as nullable unique: costs nothing now, enables the bonus feature without a schema change later</li>
+                  <li>confirmedAt / releasedAt timestamps: useful for analytics and debugging without extra queries</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Required indexes</div>
+                <ul class="detail-list">
+                  <li>@@unique([productId, warehouseId]) on StockLevel — enforced at DB level, not just ORM</li>
+                  <li>@@index([status, expiresAt]) on Reservation — cron expiry query filters on both; without this it's a full table scan</li>
+                  <li>@@index([productId, warehouseId, status]) on Reservation — availability lookups during reservation creation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-db">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">2.3</span>
+                  <span class="step-layer layer-db">Database</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Run migration and generate Prisma client</div>
+                <div class="step-desc">Execute npx prisma migrate dev --name init to apply the schema to the database, then npx prisma generate to produce the typed client.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Commands in order</div>
+                <ul class="detail-list">
+                  <li>npx prisma migrate dev --name init — creates the SQL migration file and runs it against the dev database</li>
+                  <li>npx prisma generate — generates /node_modules/.prisma/client with full TypeScript types</li>
+                  <li>npx prisma studio — open in browser to visually verify the tables were created correctly</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  If Prisma can't connect, check that DATABASE_URL uses the direct connection URL, not the pooler, for migration. Supabase's pooler (PgBouncer) does not support the DDL statements Prisma needs.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-db">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">2.4</span>
+                  <span class="step-layer layer-db">Database</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Write and run the seed script</div>
+                <div class="step-desc">Create prisma/seed.ts to populate at least 2 warehouses, 3 products, and meaningful stock levels for each product-warehouse combination.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Seed data requirements for demo</div>
+                <ul class="detail-list">
+                  <li>At least 2 warehouses with different names and locations (e.g. Mumbai Hub, Delhi Hub)</li>
+                  <li>At least 3 products with different prices and realistic names</li>
+                  <li>StockLevel row for each product-warehouse pair with totalUnits >= 10 and reservedUnits = 0</li>
+                  <li>Set one product to have low stock (totalUnits = 1) so the concurrency test is easy to demonstrate</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Setup steps</div>
+                <ul class="detail-list">
+                  <li>Add to package.json: "prisma": {"seed": "ts-node prisma/seed.ts"}</li>
+                  <li>Run: npx prisma db seed</li>
+                  <li>Verify in Prisma Studio that all rows were created correctly</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-db">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">2.5</span>
+                  <span class="step-layer layer-db">Database</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create the Prisma singleton (lib/db.ts)</div>
+                <div class="step-desc">Create a single PrismaClient instance cached on the global object in development to prevent multiple instances during hot reload, which exhaust database connections.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Why a singleton?</div>
+                <ul class="detail-list">
+                  <li>Next.js dev server hot-reloads modules frequently. Without caching on global, each reload creates a new PrismaClient and opens a new connection pool</li>
+                  <li>Supabase free tier has a connection limit; exhausting it causes "too many clients" errors</li>
+                  <li>The pattern: check if globalThis.prisma exists, use it if so, otherwise create and store it</li>
+                  <li>In production, modules are not hot-reloaded so the singleton pattern doesn't matter, but it doesn't hurt</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/lib/db.ts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Zod Schemas -->
+      <div class="phase" id="phase-schemas-inline">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 3</span>
+          <span class="phase-title">Zod Schemas (Shared Validation Layer)</span>
+          <span class="phase-step-count" id="phase-schemas-inline-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-schemas-inline">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">3.1</span>
+                  <span class="step-layer layer-schema">Schema</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Write the CreateReservation Zod schema</div>
+                <div class="step-desc">Define a Zod object schema with productId (cuid string), warehouseId (cuid string), and quantity (integer, min 1, max 100). Export the inferred TypeScript type alongside it.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Why Zod?</div>
+                <ul class="detail-list">
+                  <li>Zod schemas are defined once in src/schemas/ and imported by both the API controller (server) and the React Hook Form resolver (client)</li>
+                  <li>If the API contract changes, you update one schema file and the frontend form validation updates automatically</li>
+                  <li>Zod's z.infer extracts the TypeScript type, giving you compile-time safety with zero duplication</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/schemas/reservation.schema.ts</span>
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Also export from this file</div>
+                <ul class="detail-list">
+                  <li>ConfirmReservationSchema — just id as a cuid string</li>
+                  <li>type CreateReservationInput = z.infer&lt;typeof CreateReservationSchema&gt;</li>
+                  <li>type ConfirmReservationInput = z.infer&lt;typeof ConfirmReservationSchema&gt;</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-schemas-inline">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">3.2</span>
+                  <span class="step-layer layer-schema">Schema</span>
+                  <span class="step-priority priority-medium">Medium</span>
+                </div>
+                <div class="step-title">Write shared TypeScript interfaces in types/index.ts</div>
+                <div class="step-desc">Define enriched types like ProductWithStock (Product + StockLevel with computed availableUnits) that are used by both the service layer and the frontend components.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Types to define</div>
+                <ul class="detail-list">
+                  <li>StockLevelWithWarehouse: StockLevel & {"{ warehouse: Warehouse, availableUnits: number }"}</li>
+                  <li>ProductWithStock: Product & {"{ stockLevels: StockLevelWithWarehouse[] }"}</li>
+                  <li>ReservationWithRelations: Reservation & {"{ product: Product, warehouse: Warehouse }"}</li>
+                  <li>ApiError: {"{ error: string | ZodFlattenedError, status: number }"}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Repository -->
+      <div class="phase" id="phase-repo">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 4</span>
+          <span class="phase-title">Repository Layer (All Database Queries)</span>
+          <span class="phase-step-count" id="phase-repo-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-repo">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">4.1</span>
+                  <span class="step-layer layer-repo">Repository</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create product.repository.ts</div>
+                <div class="step-desc">Exports findAll() which fetches all products with their stock levels and warehouses included. Exports findById(). No business logic here — pure data access only.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Methods to implement</div>
+                <ul class="detail-list">
+                  <li>findAll(): queries db.product.findMany with include: {"{ stockLevels: { include: { warehouse: true } } }"}</li>
+                  <li>findById(id: string): queries db.product.findUnique with the same includes</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Architecture rule</div>
+                <div class="detail-note">Repositories are the ONLY files that import db from lib/db.ts. Services call repositories. Controllers call services. Routes call controllers. This chain must not be broken.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-repo">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">4.2</span>
+                  <span class="step-layer layer-repo">Repository</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create warehouse.repository.ts</div>
+                <div class="step-desc">Simple repository with findAll() and findById(). Warehouse data is straightforward — no joins needed beyond the basic fields.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Methods to implement</div>
+                <ul class="detail-list">
+                  <li>findAll(): db.warehouse.findMany() — returns all warehouses</li>
+                  <li>findById(id: string): db.warehouse.findUnique({ where: { id } })</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-repo">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">4.3</span>
+                  <span class="step-layer layer-repo">Repository</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create stock.repository.ts with row-level locking</div>
+                <div class="step-desc">This is the most critical repository. It must use a raw SQL query with SELECT FOR UPDATE NOWAIT to acquire a row-level lock. Also implements incrementReserved and decrementReserved for atomic stock mutations.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Methods to implement</div>
+                <ul class="detail-list">
+                  <li>findWithLock(productId, warehouseId): raw SQL SELECT with FOR UPDATE NOWAIT — locks the row against concurrent writes</li>
+                  <li>incrementReserved(productId, warehouseId, qty, tx): called inside a Prisma $transaction — adds qty to reservedUnits</li>
+                  <li>decrementReserved(productId, warehouseId, qty, tx): called inside a Prisma $transaction — subtracts qty from reservedUnits</li>
+                  <li>decrementTotal(productId, warehouseId, qty, tx): called on confirm — permanently reduces totalUnits</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  Prisma's fluent API does not support SELECT FOR UPDATE. The findWithLock method MUST use db.$queryRaw. This is the intentional and necessary exception to the ORM abstraction. NOWAIT means the query fails immediately if the row is locked rather than waiting, which is critical for the race condition guarantee.
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Why these two separate methods (increment vs decrementTotal)?</div>
+                <ul class="detail-list">
+                  <li>On reserve: only reservedUnits increases (totalUnits unchanged)</li>
+                  <li>On confirm: both totalUnits AND reservedUnits decrease (net effect: reservation becomes permanent stock removal)</li>
+                  <li>On cancel/release: only reservedUnits decreases (totalUnits unchanged, units go back to available)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-repo">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">4.4</span>
+                  <span class="step-layer layer-repo">Repository</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.repository.ts</div>
+                <div class="step-desc">Full CRUD for reservations including create, findById (with product and warehouse relations), updateStatus, and findExpiredPending for the cron job.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Methods to implement</div>
+                <ul class="detail-list">
+                  <li>create(data, tx): creates a Reservation row inside a Prisma transaction</li>
+                  <li>findById(id): findUnique with product and warehouse relations included</li>
+                  <li>findByIdempotencyKey(key): used in the bonus feature to check for duplicate requests</li>
+                  <li>updateStatus(id, status, timestamp, tx): updates status to CONFIRMED or RELEASED, sets confirmedAt or releasedAt</li>
+                  <li>findExpiredPending(): findMany where status = PENDING AND expiresAt &lt; new Date() — used by the cron job</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Service -->
+      <div class="phase" id="phase-service">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 5</span>
+          <span class="phase-title">Service Layer (Business Logic)</span>
+          <span class="phase-step-count" id="phase-service-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-service">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">5.1</span>
+                  <span class="step-layer layer-service">Service</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create product.service.ts</div>
+                <div class="step-desc">Calls the product repository, then maps over the results to compute and attach availableUnits (totalUnits minus reservedUnits) to each stock level row.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Business logic to implement</div>
+                <ul class="detail-list">
+                  <li>Call productRepository.findAll()</li>
+                  <li>Map each product's stockLevels to add availableUnits = totalUnits - reservedUnits</li>
+                  <li>Optionally filter out stock levels where totalUnits = 0 (no stock at all at that warehouse)</li>
+                  <li>Return the enriched ProductWithStock array</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-service">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">5.2</span>
+                  <span class="step-layer layer-service">Service</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.service.ts — createReservation()</div>
+                <div class="step-desc">The core of the exercise. Orchestrates: check idempotency cache → acquire Redis lock → run Postgres FOR UPDATE → check availability → create reservation + increment stock in a single transaction → release lock.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Step-by-step flow</div>
+                <ul class="detail-list">
+                  <li>Step 1: If an idempotencyKey is provided, check Redis for a cached response. If found, return it immediately without any DB access.</li>
+                  <li>Step 2: Call withLock(productId:warehouseId) from lib/lock.ts to acquire the Redis distributed lock. If it returns null, return a conflict error to the caller.</li>
+                  <li>Step 3: Inside the lock callback, call stockRepository.findWithLock(productId, warehouseId) to acquire the Postgres row lock. This is the true concurrency guarantee.</li>
+                  <li>Step 4: Calculate available = totalUnits - reservedUnits. If available &lt; quantity, return an insufficient stock signal.</li>
+                  <li>Step 5: Open a Prisma $transaction. Inside it: call reservationRepository.create() and stockRepository.incrementReserved(). Both must succeed or both roll back.</li>
+                  <li>Step 6: The withLock finally block automatically releases the Redis lock.</li>
+                  <li>Step 7: If idempotencyKey was provided and the reservation succeeded, store the response in Redis with a 24-hour TTL.</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  The Redis lock and the Postgres FOR UPDATE lock must both be used. Redis prevents thundering herd (many requests all reaching the DB simultaneously). Postgres ensures correctness even if the Redis lock fails or expires. Belt and suspenders.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-service">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">5.3</span>
+                  <span class="step-layer layer-service">Service</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.service.ts — confirmReservation()</div>
+                <div class="step-desc">Fetches the reservation, checks it is PENDING and not expired (returning a 410 signal if expired), then runs a transaction to set status to CONFIRMED and permanently decrement both totalUnits and reservedUnits.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Step-by-step flow</div>
+                <ul class="detail-list">
+                  <li>Step 1: Fetch the reservation by id using reservationRepository.findById()</li>
+                  <li>Step 2: If not found, return a not-found signal (caller returns 404)</li>
+                  <li>Step 3: If status !== PENDING OR expiresAt &lt; new Date(): this reservation is expired. If it is still PENDING, release the stock as a cleanup step. Return an expired signal (caller returns 410).</li>
+                  <li>Step 4: Open a Prisma $transaction. Inside: updateStatus to CONFIRMED, and call stockRepository.decrementReserved AND stockRepository.decrementTotal with the reservation's quantity. This permanently removes the units from inventory.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-service">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">5.4</span>
+                  <span class="step-layer layer-service">Service</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.service.ts — releaseReservation() and releaseExpired()</div>
+                <div class="step-desc">releaseReservation() handles user-initiated cancel. releaseExpired() is called by the cron job to batch-release all expired PENDING reservations.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">releaseReservation() flow</div>
+                <ul class="detail-list">
+                  <li>Fetch reservation. If not found or not PENDING, return an error signal.</li>
+                  <li>Open a transaction: updateStatus to RELEASED, call stockRepository.decrementReserved. totalUnits is NOT decremented — units return to available.</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">releaseExpired() flow (for cron)</div>
+                <ul class="detail-list">
+                  <li>Call reservationRepository.findExpiredPending() to get all PENDING reservations past their expiresAt</li>
+                  <li>Loop over each and open a transaction: updateStatus to RELEASED, decrementReserved</li>
+                  <li>Return the count of released reservations for logging</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Controllers -->
+      <div class="phase" id="phase-ctrl">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 6</span>
+          <span class="phase-title">Controller Layer (HTTP In / Out)</span>
+          <span class="phase-step-count" id="phase-ctrl-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-ctrl">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">6.1</span>
+                  <span class="step-layer layer-ctrl">Controller</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create product.controller.ts and warehouse.controller.ts</div>
+                <div class="step-desc">Each exports a list() method that calls the corresponding service, then formats the result as a NextResponse JSON. No business logic — only HTTP in, service call, HTTP out.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Controller responsibilities</div>
+                <ul class="detail-list">
+                  <li>Parse query parameters or route params from the NextRequest object</li>
+                  <li>Validate inputs using Zod (safeParse, not parse — so you can return 400 instead of throwing)</li>
+                  <li>Call the appropriate service method</li>
+                  <li>Map service return values to HTTP status codes and JSON bodies</li>
+                  <li>Controllers must never throw — all errors are caught and returned as NextResponse</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-ctrl">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">6.2</span>
+                  <span class="step-layer layer-ctrl">Controller</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.controller.ts — create()</div>
+                <div class="step-desc">Parses and validates the request body with CreateReservationSchema. Extracts the Idempotency-Key header. Calls reservationService.createReservation(). Maps service results to 201, 400, or 409 responses.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">HTTP status codes to return</div>
+                <ul class="detail-list">
+                  <li>201 Created — reservation successfully created</li>
+                  <li>400 Bad Request — Zod validation failed (invalid body shape)</li>
+                  <li>409 Conflict — insufficient stock OR Redis lock could not be acquired (another request is in progress)</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Idempotency-Key handling</div>
+                <ul class="detail-list">
+                  <li>Extract header: req.headers.get('Idempotency-Key')</li>
+                  <li>Pass it to the service. The service checks Redis and either returns cached response or runs the full flow.</li>
+                  <li>On retry (cache hit): return the original 201 response — same body, same status, no side effects</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-ctrl">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">6.3</span>
+                  <span class="step-layer layer-ctrl">Controller</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create reservation.controller.ts — confirm() and release()</div>
+                <div class="step-desc">Both methods validate the :id route param, call the service, and map service signals to 200, 404, 410, or 400 responses.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">confirm() status codes</div>
+                <ul class="detail-list">
+                  <li>200 OK — reservation confirmed successfully</li>
+                  <li>404 Not Found — reservation ID does not exist</li>
+                  <li>410 Gone — reservation has expired (payment window passed)</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">release() status codes</div>
+                <ul class="detail-list">
+                  <li>200 OK — reservation released successfully</li>
+                  <li>404 Not Found — reservation ID does not exist</li>
+                  <li>400 Bad Request — reservation is not in PENDING state (already confirmed or released)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Routes -->
+      <div class="phase" id="phase-routes">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 7</span>
+          <span class="phase-title">API Route Files (Thin Entry Points)</span>
+          <span class="phase-step-count" id="phase-routes-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-routes">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">7.1</span>
+                  <span class="step-layer layer-route">Route</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create GET /api/products and GET /api/warehouses routes</div>
+                <div class="step-desc">Each route.ts file exports a single GET function that simply calls the corresponding controller method and returns the result. These files should each be 2–4 lines of code.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">File locations</div>
+                <div class="file-paths">
+                  <span class="file-path">src/app/api/products/route.ts</span>
+                  <span class="file-path">src/app/api/warehouses/route.ts</span>
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Route file rule</div>
+                <div class="detail-note">Route files must be thin. They import the controller and call one method. All logic lives in the controller and below. A route file should never directly import a repository or call Prisma.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-routes">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">7.2</span>
+                  <span class="step-layer layer-route">Route</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create POST /api/reservations route</div>
+                <div class="step-desc">Exports a POST handler that calls reservationController.create(req). Single line delegation — all logic is in the controller and service.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/app/api/reservations/route.ts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-routes">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">7.3</span>
+                  <span class="step-layer layer-route">Route</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Create confirm and release route files</div>
+                <div class="step-desc">Two separate route.ts files under /api/reservations/[id]/confirm/ and /api/reservations/[id]/release/. Each exports a POST handler delegating to the controller.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">File locations</div>
+                <div class="file-paths">
+                  <span class="file-path">src/app/api/reservations/[id]/confirm/route.ts</span>
+                  <span class="file-path">src/app/api/reservations/[id]/release/route.ts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-routes">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">7.4</span>
+                  <span class="step-layer layer-route">Route</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Create the cron expiry route</div>
+                <div class="step-desc">GET /api/cron/release-expired. Must verify the Authorization header matches Bearer {CRON_SECRET} before calling the service. Returns count of released reservations.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/app/api/cron/release-expired/route.ts</span>
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">vercel.json configuration</div>
+                <ul class="detail-list">
+                  <li>Create vercel.json at the project root</li>
+                  <li>Add: {"crons": [{"path": "/api/cron/release-expired", "schedule": "* * * * *"}]}</li>
+                  <li>This schedules the cron to fire every minute. Vercel injects the Authorization header automatically.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Redis -->
+      <div class="phase" id="phase-redis">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 8</span>
+          <span class="phase-title">Redis Setup & Distributed Lock</span>
+          <span class="phase-step-count" id="phase-redis-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="1" data-phase="phase-redis">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">8.1</span>
+                  <span class="step-layer layer-redis">Redis</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Provision Upstash Redis and create lib/redis.ts</div>
+                <div class="step-desc">Create a free Redis database on upstash.com. Copy the REST URL and token into .env.local. Create lib/redis.ts that exports a single Redis instance using Redis.fromEnv().</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Why Upstash (not standard Redis)?</div>
+                <ul class="detail-list">
+                  <li>Standard Redis clients use persistent TCP connections. Serverless functions (Vercel) are stateless and short-lived — they cannot maintain persistent connections.</li>
+                  <li>Upstash provides Redis over HTTP REST. Each call is a single HTTP request — perfect for serverless.</li>
+                  <li>Redis.fromEnv() automatically reads UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN — no manual config.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="1" data-phase="phase-redis">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">8.2</span>
+                  <span class="step-layer layer-redis">Redis</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Implement withLock() in lib/lock.ts</div>
+                <div class="step-desc">Implement acquireLock (SET key 1 NX PX 5000), releaseLock (DEL key), and withLock(key, fn) wrapper that automatically releases in a finally block.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Lock mechanics</div>
+                <ul class="detail-list">
+                  <li>NX (Not eXists): the SET command only succeeds if the key does not already exist — atomic check-and-set</li>
+                  <li>PX 5000: the lock auto-expires after 5 seconds even if the process crashes before releaseLock is called</li>
+                  <li>If SET returns OK: lock acquired. If it returns null: another process holds the lock — return null to caller.</li>
+                  <li>withLock wraps the callback in try/finally to guarantee lock release even if the callback throws</li>
+                  <li>Lock key format: lock:{productId}:{warehouseId} — one lock per product-warehouse combination</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- DAY 2 -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="day-section">
+      <div class="day-header day2">
+        <div class="day-badge day2">2</div>
+        <div class="day-info">
+          <h2>Frontend + Integration + Deployment</h2>
+          <div class="day-meta">
+            <span class="pill day2">Day 2</span>
+            <span>Est. 8–10 hours</span>
+          </div>
+        </div>
+        <div class="day-progress">
+          <span class="day-pct day2" id="day2-pct">0%</span>
+          <div class="day-pct-label">complete</div>
+        </div>
+      </div>
+
+      <!-- Phase: UI Setup -->
+      <div class="phase" id="phase-ui">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 9</span>
+          <span class="phase-title">shadcn/ui Setup & Design System</span>
+          <span class="phase-step-count" id="phase-ui-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="2" data-phase="phase-ui">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">9.1</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Initialise shadcn/ui</div>
+                <div class="step-desc">Run npx shadcn-ui@latest init. Choose TypeScript, Default style, Slate base colour, CSS variables enabled, and the correct tailwind config and component paths.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Init prompt answers</div>
+                <ul class="detail-list">
+                  <li>TypeScript → Yes</li>
+                  <li>Style → Default</li>
+                  <li>Base colour → Slate</li>
+                  <li>CSS variables for colours → Yes</li>
+                  <li>Tailwind config location → tailwind.config.ts</li>
+                  <li>Components directory → @/components</li>
+                  <li>Utils directory → @/lib/utils</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">Why shadcn/ui?</div>
+                <ul class="detail-list">
+                  <li>Components are copied into the project — you own the code, zero lock-in</li>
+                  <li>All styles are Tailwind utilities — consistent design system with full control</li>
+                  <li>Built on Radix UI primitives — WAI-ARIA accessibility compliance out of the box</li>
+                  <li>No runtime overhead — only the components you use are shipped</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-ui">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">9.2</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Install all required shadcn components</div>
+                <div class="step-desc">Add button, card, badge, dialog, toast/use-toast, input, label, form, table, and separator. Each command copies the component source into src/components/ui/.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Components needed and where used</div>
+                <ul class="detail-list">
+                  <li>Button — Reserve, Confirm, Cancel actions everywhere</li>
+                  <li>Card — ProductCard container on the listing page</li>
+                  <li>Badge — stock level display (available / out of stock)</li>
+                  <li>Dialog — ReserveDialog modal for warehouse selection and quantity input</li>
+                  <li>Toast / use-toast — 409 and 410 error messages visible to the user</li>
+                  <li>Input — quantity field in the reserve dialog</li>
+                  <li>Form — React Hook Form integration on the reserve dialog</li>
+                  <li>Label — accessible labels for all form fields</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-ui">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">9.3</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-medium">Medium</span>
+                </div>
+                <div class="step-title">Set up dark/light mode with next-themes</div>
+                <div class="step-desc">Install next-themes and wrap the root layout with ThemeProvider. Set Tailwind's darkMode to 'class'. The shadcn CSS variables in globals.css will automatically switch.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Setup steps</div>
+                <ul class="detail-list">
+                  <li>npm install next-themes</li>
+                  <li>In tailwind.config.ts: set darkMode: 'class'</li>
+                  <li>In layout.tsx: import ThemeProvider from next-themes, wrap children with attribute="class" defaultTheme="system" enableSystem</li>
+                  <li>Add suppressHydrationWarning to the html element to prevent React hydration mismatch on theme</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-ui">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">9.4</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Add the global Toaster to the root layout</div>
+                <div class="step-desc">Import and render the Toaster component from shadcn in layout.tsx so that toast notifications are available globally. Without this, useToast() calls have nowhere to render.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Why this matters</div>
+                <ul class="detail-list">
+                  <li>The 409 (insufficient stock) and 410 (reservation expired) errors must be visible to the user</li>
+                  <li>useToast() hook posts to a context that the Toaster component listens to and renders</li>
+                  <li>If Toaster is not in the layout, toast() calls fire silently with no visible output</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Pages & Components -->
+      <div class="phase" id="phase-pages">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 10</span>
+          <span class="phase-title">Pages & Feature Components</span>
+          <span class="phase-step-count" id="phase-pages-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="2" data-phase="phase-pages">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">10.1</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Build the product listing page (Server Component)</div>
+                <div class="step-desc">src/app/products/page.tsx is an async Server Component. It calls the productService directly (no API fetch needed) and renders a ProductGrid. Available stock is computed server-side.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">What this page must show</div>
+                <ul class="detail-list">
+                  <li>A grid of product cards — one per product</li>
+                  <li>Each card shows: product name, SKU, price</li>
+                  <li>Per-warehouse stock: warehouse name + available units badge (green if &gt;0, red if 0)</li>
+                  <li>A Reserve button that opens the ReserveDialog</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-note">Because this is a Server Component, it can import the productService directly and call it without fetch(). The data fetching happens on the server at render time — no loading state, no useEffect, no client-side fetch needed.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-pages">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">10.2</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Build ProductCard and ReserveDialog components</div>
+                <div class="step-desc">ProductCard displays product info and stock badges. ReserveDialog is a 'use client' component with a shadcn Dialog containing a warehouse dropdown, quantity input validated by React Hook Form + Zod, and a submit button.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">ReserveDialog requirements</div>
+                <ul class="detail-list">
+                  <li>Uses React Hook Form with zodResolver(CreateReservationSchema) — reuses the same Zod schema from the API</li>
+                  <li>Shows a select/dropdown for warehouse (if product has stock in multiple warehouses)</li>
+                  <li>Quantity input with min=1 validation</li>
+                  <li>Submit button disabled while isSubmitting is true (prevents double submission)</li>
+                  <li>On 409 response: show toast "Not enough stock at this warehouse"</li>
+                  <li>On success: close dialog, navigate to /reservations/[reservationId]</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">File locations</div>
+                <div class="file-paths">
+                  <span class="file-path">src/components/products/ProductCard.tsx</span>
+                  <span class="file-path">src/components/products/ProductGrid.tsx</span>
+                  <span class="file-path">src/components/products/ReserveDialog.tsx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-pages">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">10.3</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Build the reservation/checkout page</div>
+                <div class="step-desc">src/app/reservations/[id]/page.tsx is an async Server Component. Fetches the reservation by ID including product and warehouse. Renders reservation details + CountdownTimer + ReservationActions as client sub-components.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">What this page must show</div>
+                <ul class="detail-list">
+                  <li>Product name, quantity, warehouse name</li>
+                  <li>Live countdown timer to expiresAt (client component)</li>
+                  <li>Reservation status (PENDING / CONFIRMED / RELEASED)</li>
+                  <li>Confirm Purchase button (active only when status is PENDING)</li>
+                  <li>Cancel button (active only when status is PENDING)</li>
+                  <li>After confirm or cancel: UI updates immediately without manual page refresh</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  Call notFound() from next/navigation if the reservation ID does not exist. This renders Next.js's built-in 404 page rather than a blank screen.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-pages">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">10.4</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Build CountdownTimer (Client Component)</div>
+                <div class="step-desc">A 'use client' component that accepts expiresAt (ISO string) and status. Uses setInterval in useEffect to tick every second. Turns red and pulses when under 60 seconds. Clears the interval on unmount.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Implementation details</div>
+                <ul class="detail-list">
+                  <li>remaining = max(0, new Date(expiresAt).getTime() - Date.now())</li>
+                  <li>Recompute every second via setInterval</li>
+                  <li>Format as MM:SS — minutes Math.floor(remaining / 60000), seconds Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0')</li>
+                  <li>When remaining &lt; 60000: apply red colour and animate-pulse CSS class</li>
+                  <li>When remaining = 0 OR status is not PENDING: stop interval and show "Expired" message</li>
+                  <li>Return () => clearInterval(interval) from useEffect to prevent memory leaks on unmount</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/components/reservations/CountdownTimer.tsx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-pages">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">10.5</span>
+                  <span class="step-layer layer-ui">UI</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Build ReservationActions (Client Component)</div>
+                <div class="step-desc">Confirm and Cancel buttons. On click: POST to the appropriate API endpoint, handle 410 with a toast error, call router.refresh() on success so the Server Component re-fetches and the UI updates without a full page reload.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Button behaviour</div>
+                <ul class="detail-list">
+                  <li>If status !== PENDING: render a read-only status message instead of buttons</li>
+                  <li>Track loading state: 'confirm' | 'cancel' | null — disable both buttons while any action is in flight</li>
+                  <li>On confirm: POST /api/reservations/{id}/confirm. If 410: toast "Reservation expired". If 200: toast "Purchase confirmed!" + router.refresh()</li>
+                  <li>On cancel: POST /api/reservations/{id}/release. If 200: toast "Reservation cancelled" + router.refresh()</li>
+                  <li>router.refresh() re-runs the Server Component tree, fetching fresh reservation data from the database and re-rendering the page with the new status</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-label">File location</div>
+                <div class="file-paths">
+                  <span class="file-path">src/components/reservations/ReservationActions.tsx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase: Deploy -->
+      <div class="phase" id="phase-deploy">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <span class="phase-num">Phase 11</span>
+          <span class="phase-title">Deployment & Production Readiness</span>
+          <span class="phase-step-count" id="phase-deploy-count"></span>
+          <span class="phase-toggle">▾</span>
+        </div>
+        <div class="phase-body">
+
+          <div class="step-card" data-day="2" data-phase="phase-deploy">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">11.1</span>
+                  <span class="step-layer layer-deploy">Deploy</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Connect GitHub repo to Vercel and set environment variables</div>
+                <div class="step-desc">Push the repo to GitHub (public). Go to vercel.com, import the repository, and add all environment variables from .env.local in the Vercel dashboard before triggering the first deploy.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Vercel environment variables to add</div>
+                <ul class="detail-list">
+                  <li>DATABASE_URL (pooler URL — for runtime queries)</li>
+                  <li>DIRECT_URL (direct URL — for Prisma migrations)</li>
+                  <li>UPSTASH_REDIS_REST_URL</li>
+                  <li>UPSTASH_REDIS_REST_TOKEN</li>
+                  <li>RESERVATION_TTL_SECONDS (600)</li>
+                  <li>CRON_SECRET (same value as local)</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <div class="detail-warn">
+                  <span class="warn-icon">⚠</span>
+                  Set variables BEFORE the first deploy triggers. Vercel builds immediately on connection. If variables are missing during build, the deploy will fail or the app will crash on first request.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-deploy">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">11.2</span>
+                  <span class="step-layer layer-deploy">Deploy</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Run production migration and seed the database</div>
+                <div class="step-desc">With DIRECT_URL pointed at the production database, run prisma migrate deploy (not migrate dev). Then run the seed script to populate products and warehouses so the live app has data to demo.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Commands (run locally against production DB)</div>
+                <ul class="detail-list">
+                  <li>DATABASE_URL=&lt;prod_direct_url&gt; npx prisma migrate deploy — applies all migrations without prompting</li>
+                  <li>DATABASE_URL=&lt;prod_direct_url&gt; npx ts-node prisma/seed.ts — populates demo data</li>
+                  <li>Verify with Prisma Studio: DATABASE_URL=&lt;prod_url&gt; npx prisma studio</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-deploy">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">11.3</span>
+                  <span class="step-layer layer-test">Test</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Test the concurrency guarantee end-to-end</div>
+                <div class="step-desc">Set one product to totalUnits=1 in the production database. Send two simultaneous POST /api/reservations requests for that product. Verify exactly one 201 and one 409 are returned.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">How to run the concurrency test</div>
+                <ul class="detail-list">
+                  <li>Set a product's totalUnits to 1 via Prisma Studio on the production database</li>
+                  <li>Open two browser tabs simultaneously. Have both fill in the Reserve form and click submit at the exact same time.</li>
+                  <li>Alternatively, use curl with & (background) to fire two requests in parallel</li>
+                  <li>Expected result: one tab navigates to the reservation page (201), the other sees the "Not enough stock" toast (409)</li>
+                  <li>Check the database to confirm reservedUnits = 1, not 2</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-deploy">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">11.4</span>
+                  <span class="step-layer layer-test">Test</span>
+                  <span class="step-priority priority-critical">Critical</span>
+                </div>
+                <div class="step-title">Test the full happy path and all error flows</div>
+                <div class="step-desc">Walk through: browse products → reserve → confirm. Then: reserve → cancel. Then: reserve → wait for expiry → attempt confirm (expect 410). Verify all UI states update correctly without manual refresh.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">Test scenarios to cover</div>
+                <ul class="detail-list">
+                  <li>Happy path: reserve → confirm. Stock decremented, status shows CONFIRMED, buttons disappear.</li>
+                  <li>Cancel path: reserve → cancel. Stock restored, status shows RELEASED, buttons disappear.</li>
+                  <li>Expiry path: reserve → reduce RESERVATION_TTL_SECONDS to 30 → wait → attempt confirm. Expect 410 toast "Reservation expired".</li>
+                  <li>No stock path: deplete all stock → attempt reserve → expect 409 toast "Not enough stock".</li>
+                  <li>Cron path: set expiresAt to a past time via DB → call GET /api/cron/release-expired with Authorization header → verify status changes to RELEASED and stock is restored.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card" data-day="2" data-phase="phase-deploy">
+            <div class="step-main">
+              <div class="step-check" onclick="toggleStep(this)">
+                <div class="check-icon"><svg viewBox="0 0 12 12"><polyline points="1,6 4,9 11,2"/></svg></div>
+              </div>
+              <div class="step-content">
+                <div class="step-meta">
+                  <span class="step-id">11.5</span>
+                  <span class="step-layer layer-deploy">Deploy</span>
+                  <span class="step-priority priority-high">High</span>
+                </div>
+                <div class="step-title">Write the README</div>
+                <div class="step-desc">Document local setup steps, how the expiry mechanism works in production, and all trade-offs made. The README is read during the debrief — it is as important as the code.</div>
+              </div>
+              <button class="step-expand-btn" onclick="toggleDetail(this)">Details</button>
+            </div>
+            <div class="step-detail">
+              <div class="detail-section">
+                <div class="detail-label">README sections required</div>
+                <ul class="detail-list">
+                  <li>Local setup: clone → npm install → copy .env.example to .env.local → fill values → npx prisma migrate dev → npx prisma db seed → npm run dev</li>
+                  <li>Expiry mechanism: Vercel Cron fires every minute. In development, call GET /api/cron/release-expired with Authorization: Bearer {CRON_SECRET}</li>
+                  <li>Architecture decisions: why double-lock (Redis + FOR UPDATE), why Controller/Service/Repository layers</li>
+                  <li>Trade-offs: Vercel Cron 1-minute granularity, router.refresh() vs real-time WebSockets, no authentication</li>
+                  <li>With more time: auth, SSE for real-time stock, DB trigger to keep reservedUnits consistent, monitoring</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- FINAL CHECKLIST -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="checklist-section">
+      <div class="checklist-title">Final Deployment Checklist</div>
+      <div class="checklist-sub">Verify everything before the debrief call. Click to mark done.</div>
+      <div class="checklist-grid">
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">GitHub repo is public with full incremental commit history</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Live URL deployed on Vercel and accessible without setup</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">README covers local setup, expiry mechanism, and trade-offs</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Production database seeded with demo products and warehouses</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">All 5 API endpoints return correct status codes</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Concurrency test: simultaneous requests → exactly one 201, one 409</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Product listing shows per-warehouse available stock</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">409 "not enough stock" error is visible to user (toast)</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Reservation page shows live countdown timer</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Confirm button updates UI state without manual page refresh</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Cancel button updates UI state without manual page refresh</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">410 "reservation expired" error visible to user (toast)</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Cron or equivalent releases expired reservations automatically</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">No secrets hardcoded — all env vars in Vercel dashboard</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">(Bonus) Idempotency-Key prevents duplicate reservations on retry</div>
+        </div>
+        <div class="check-item" onclick="toggleCheckItem(this)">
+          <div class="ci-box"><svg viewBox="0 0 10 10"><polyline points="1,5 3.5,7.5 9,1.5"/></svg></div>
+          <div class="ci-text">Git history shows incremental commits (not one giant commit)</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <span id="toast-msg">Step marked as done</span>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const STORAGE_KEY = 'allo_plan_state';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const state = loadState();
+
+  // Restore step done states
+  document.querySelectorAll('.step-card').forEach((card, i) => {
+    const id = getCardId(card);
+    if (state[id]) {
+      card.classList.add('done');
+      card.querySelector('.step-check').classList.add('checked');
+    }
+  });
+
+  // Restore checklist states
+  document.querySelectorAll('.check-item').forEach((item, i) => {
+    if (state['cl_' + i]) item.classList.add('done');
+  });
+
+  updateAllCounts();
+  updateNav();
+});
+
+function getCardId(card) {
+  const stepId = card.querySelector('.step-id')?.textContent || '';
+  const title = card.querySelector('.step-title')?.textContent?.slice(0, 20) || '';
+  return 'step_' + stepId + '_' + title.replace(/\s/g, '_');
+}
+
+// ── STEP TOGGLE ────────────────────────────────────────────────
+function toggleStep(checkEl) {
+  const card = checkEl.closest('.step-card');
+  const id = getCardId(card);
+  const state = loadState();
+
+  const isDone = card.classList.toggle('done');
+  checkEl.classList.toggle('checked', isDone);
+  state[id] = isDone;
+  saveState(state);
+
+  showToast(isDone ? '✅' : '↩', isDone ? 'Step marked as done!' : 'Step marked as to-do');
+  updateAllCounts();
+  updateNav();
+}
+
+function toggleCheckItem(item) {
+  const items = [...document.querySelectorAll('.check-item')];
+  const i = items.indexOf(item);
+  const state = loadState();
+  const isDone = item.classList.toggle('done');
+  state['cl_' + i] = isDone;
+  saveState(state);
+}
+
+// ── DETAIL TOGGLE ──────────────────────────────────────────────
+function toggleDetail(btn) {
+  const card = btn.closest('.step-card');
+  card.classList.toggle('expanded');
+  btn.textContent = card.classList.contains('expanded') ? 'Close' : 'Details';
+}
+
+// ── PHASE TOGGLE ──────────────────────────────────────────────
+function togglePhase(header) {
+  header.classList.toggle('collapsed');
+  const body = header.nextElementSibling;
+  body.style.display = header.classList.contains('collapsed') ? 'none' : 'flex';
+}
+
+function expandAll() {
+  document.querySelectorAll('.phase-header').forEach(h => {
+    h.classList.remove('collapsed');
+    h.nextElementSibling.style.display = 'flex';
+  });
+}
+
+function collapseAll() {
+  document.querySelectorAll('.phase-header').forEach(h => {
+    h.classList.add('collapsed');
+    h.nextElementSibling.style.display = 'none';
+  });
+}
+
+function resetAll() {
+  if (!confirm('Reset all progress?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.querySelectorAll('.step-card.done').forEach(c => {
+    c.classList.remove('done');
+    c.querySelector('.step-check').classList.remove('checked');
+  });
+  document.querySelectorAll('.check-item.done').forEach(c => c.classList.remove('done'));
+  updateAllCounts();
+  updateNav();
+  showToast('↺', 'Progress reset');
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+function filterSteps(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.step-card').forEach(card => {
+    const isDone = card.classList.contains('done');
+    if (type === 'all') card.style.display = '';
+    else if (type === 'done') card.style.display = isDone ? '' : 'none';
+    else card.style.display = !isDone ? '' : 'none';
+  });
+}
+
+// ── COUNTS ────────────────────────────────────────────────────
+function updateAllCounts() {
+  const allCards = document.querySelectorAll('.step-card');
+  const doneCards = document.querySelectorAll('.step-card.done');
+  const total = allCards.length;
+  const done = doneCards.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('globalPct').textContent = pct + '%';
+  document.getElementById('globalBar').style.width = pct + '%';
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = total;
+
+  // Per-phase counts
+  document.querySelectorAll('.phase').forEach(phase => {
+    const phaseCards = phase.querySelectorAll('.step-card');
+    const phaseDone = phase.querySelectorAll('.step-card.done');
+    const countEl = phase.querySelector('.phase-step-count');
+    if (countEl) countEl.textContent = phaseDone.length + '/' + phaseCards.length;
+  });
+
+  // Per-day counts
+  ['1','2'].forEach(day => {
+    const dayCards = document.querySelectorAll(`.step-card[data-day="${day}"]`);
+    const dayDone = document.querySelectorAll(`.step-card[data-day="${day}"].done`);
+    const pctEl = document.getElementById('day' + day + '-pct');
+    if (pctEl) {
+      const d = dayCards.length ? Math.round((dayDone.length / dayCards.length) * 100) : 0;
+      pctEl.textContent = d + '%';
+    }
+  });
+
+  // Nav counts per phase
+  document.querySelectorAll('[data-phase]').forEach(link => {
+    const phaseId = link.dataset.phase;
+    const phaseEl = document.getElementById(phaseId);
+    if (!phaseEl) return;
+    const total = phaseEl.querySelectorAll('.step-card').length;
+    const done = phaseEl.querySelectorAll('.step-card.done').length;
+    const countEl = document.getElementById('nav-count-' + phaseId);
+    if (countEl) countEl.textContent = done + '/' + total;
+  });
+}
+
+// ── NAV ACTIVE ────────────────────────────────────────────────
+function updateNav() {
+  document.querySelectorAll('[data-phase]').forEach(link => {
+    const phaseId = link.dataset.phase;
+    const phaseEl = document.getElementById(phaseId);
+    if (!phaseEl) return;
+    const total = phaseEl.querySelectorAll('.step-card').length;
+    const done = phaseEl.querySelectorAll('.step-card.done').length;
+    const dot = link.querySelector('.nav-dot');
+    if (done === total && total > 0) {
+      link.classList.add('done');
+      if (dot) dot.style.background = 'var(--green)';
+    } else {
+      link.classList.remove('done');
+      if (dot) dot.style.background = '';
+    }
+  });
+}
+
+// Highlight active nav on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('[data-phase]').forEach(link => {
+        link.classList.toggle('active', link.dataset.phase === id);
+      });
+    }
+  });
+}, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+document.querySelectorAll('.phase[id]').forEach(phase => observer.observe(phase));
+
+// ── TOAST ─────────────────────────────────────────────────────
+let toastTimer;
+function showToast(icon, msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-msg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
