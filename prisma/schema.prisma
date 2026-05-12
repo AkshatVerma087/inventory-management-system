@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id           String        @id @default(cuid())
+  name         String
+  sku          String        @unique
+  price        Decimal       @db.Decimal(10, 2)
+  imageUrl     String
+  description  String
+  stockLevels   StockLevel[]
+  reservations  Reservation[]
+}
+
+model Warehouse {
+  id            String        @id @default(cuid())
+  name          String
+  location      String
+  stockLevels   StockLevel[]
+  reservations  Reservation[]
+}
+
+model StockLevel {
+  id            String    @id @default(cuid())
+  productId     String
+  warehouseId   String
+  totalUnits    Int
+  reservedUnits Int       @default(0)
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, warehouseId])
+  @@index([productId, warehouseId])
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+}
+
+model Reservation {
+  id             String             @id @default(cuid())
+  productId      String
+  warehouseId    String
+  quantity       Int
+  status         ReservationStatus   @default(PENDING)
+  expiresAt      DateTime
+  idempotencyKey String?             @unique
+  confirmedAt    DateTime?
+  releasedAt     DateTime?
+  product        Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse      Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([productId, warehouseId, status])
+}
