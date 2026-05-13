@@ -8,6 +8,7 @@ export async function getAllProducts() {
 
   return products.map((product) => ({
     ...product,
+    price: product.price.toString(),
 
     stockLevels: product.stockLevels.filter(
           (stockLevel) => stockLevel.totalUnits > 0).map((stockLevel) => ({...stockLevel,

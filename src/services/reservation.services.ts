@@ -1,10 +1,7 @@
-import { db } from "@/lib/db";
 import * as stockRepository from "@/repositories/stock.repositories";
 import * as reservationRepository from "@/repositories/reservation.repository";
-
 import { withLock } from "@/lib/lock";
 import { ReservationStatus } from "@prisma/client";
-
 import { redis } from "@/lib/redis";
 
 export async function reserveInventory(
@@ -24,49 +21,37 @@ export async function reserveInventory(
     const lockKey = `${productId}--${warehouseId}`;
 
     return withLock(lockKey, async () => {
+        const stock = await stockRepository.findStock(
+            productId,
+            warehouseId,
+        );
 
-        const reservation = await db.$transaction(async (transaction) => {
+        if (!stock) {
+            throw new Error("Stock not found");
+        }
 
-            const stockRows = await stockRepository.findWithLock(
-                productId,
-                warehouseId,
-                transaction
-            );
+        const availableUnits = stock.totalUnits - stock.reservedUnits;
 
-            const stock = stockRows[0];
-            if (!stock) {
-                throw new Error("Stock not found");
-            }
+        if (availableUnits < quantity) {
+            throw new Error("Not enough stock available");
+        }
 
-            const availableUnits = stock.totalUnits - stock.reservedUnits;
-
-            if (availableUnits < quantity) {
-                throw new Error("Not enough stock available");
-            }
-
-
-            const createdReservation = await reservationRepository.createReservation(
-                {
-                    productId,
-                    warehouseId,
-                    quantity,
-
-                    status: ReservationStatus.PENDING,
-                    idempotencyKey,
-                    expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-                },
-                transaction,
-            );
-
-            await stockRepository.incrementReservationQuantity(
+        const reservation = await reservationRepository.createReservation(
+            {
                 productId,
                 warehouseId,
                 quantity,
-                transaction,
-            );
+                status: ReservationStatus.PENDING,
+                idempotencyKey,
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            },
+        );
 
-            return createdReservation;
-        });
+        await stockRepository.incrementReservationQuantity(
+            productId,
+            warehouseId,
+            quantity,
+        );
 
         if (idempotencyKey) {
             await redis.set(idempotencyKey, JSON.stringify(reservation), {
@@ -78,87 +63,48 @@ export async function reserveInventory(
     });
 }
 
-
 export async function confirmReservation(reservationId: string) {
-
-    const reservation =
-        await reservationRepository.findReservationById(
-            reservationId
-        );
+    const reservation = await reservationRepository.findReservationById(reservationId);
 
     if (!reservation) {
         throw new Error("Reservation not found");
     }
 
-    const isExpired =
-        reservation.expiresAt < new Date();
-
-    const isPending =
-        reservation.status ===
-        ReservationStatus.PENDING;
-
-    
-    //   release if
-    //   expired + still pending
-    
+    const isExpired = reservation.expiresAt < new Date();
+    const isPending = reservation.status === ReservationStatus.PENDING;
 
     if (isExpired || !isPending) {
-
         if (isExpired && isPending) {
-
-            await db.$transaction(
-                async (transaction) => {
-
-                    await stockRepository.decrementReservationQuantity(
-                        reservation.productId,
-                        reservation.warehouseId,
-                        reservation.quantity,
-                        transaction
-                    );
-
-                    await reservationRepository.updateReservationStatus(
-                        reservationId,
-                        ReservationStatus.RELEASED,
-                        new Date(),
-                        transaction,
-                    );
-                }
-            );
-        }
-
-        throw new Error(
-            "Reservation expired or invalid"
-        );
-    }
-
-    return db.$transaction(
-        async (transaction) => {
-
-            const updatedReservation =
-                await reservationRepository.updateReservationStatus(
-                    reservationId,
-                    ReservationStatus.CONFIRMED,
-                    new Date(),
-                    transaction,
-                );
-
             await stockRepository.decrementReservationQuantity(
                 reservation.productId,
                 reservation.warehouseId,
-                reservation.quantity,
-                transaction
+                reservation.quantity
             );
 
-            await stockRepository.decrementTotal(
-                reservation.productId,
-                reservation.warehouseId,
-                reservation.quantity,
-                transaction
+            await reservationRepository.updateReservationStatus(
+                reservationId,
+                ReservationStatus.RELEASED,
+                new Date()
             );
-
-            return updatedReservation;
         }
+
+        throw new Error("Reservation expired or invalid");
+    }
+
+    const updatedReservation = await reservationRepository.updateReservationStatus(
+        reservationId,
+        ReservationStatus.CONFIRMED,
+        new Date()
     );
+
+    // This decrements both totalUnits and reservedUnits in one call
+    await stockRepository.decrementTotal(
+        reservation.productId,
+        reservation.warehouseId,
+        reservation.quantity
+    );
+
+    return updatedReservation;
 }
 
 export async function releaseReservation(reservationId: string) {
@@ -172,45 +118,37 @@ export async function releaseReservation(reservationId: string) {
         throw new Error("Reservation is not in PENDING state");
     }
 
-    return db.$transaction(async (transaction) => {
-        const updatedReservation = await reservationRepository.updateReservationStatus(
-            reservationId,
+    const updatedReservation = await reservationRepository.updateReservationStatus(
+        reservationId,
+        ReservationStatus.RELEASED,
+        new Date()
+    );
+
+    await stockRepository.decrementReservationQuantity(
+        reservation.productId,
+        reservation.warehouseId,
+        reservation.quantity
+    );
+
+    return updatedReservation;
+}
+
+export async function releaseExpiredReservations() {
+    const expiredReservations = await reservationRepository.findExpiredReservations();
+
+    for (const reservation of expiredReservations) {
+        await reservationRepository.updateReservationStatus(
+            reservation.id,
             ReservationStatus.RELEASED,
-            new Date(),
-            transaction
+            new Date()
         );
 
         await stockRepository.decrementReservationQuantity(
             reservation.productId,
             reservation.warehouseId,
-            reservation.quantity,
-            transaction
+            reservation.quantity
         );
-
-        return updatedReservation;
-    })
-}
-
-export async function releaseExpiredReservations(){
-    const expiredReservations = await reservationRepository.findExpiredReservations();
-
-    for(const reservation of expiredReservations) {
-        await db.$transaction(async (transaction) => {
-            await reservationRepository.updateReservationStatus(
-                reservation.id,
-                ReservationStatus.RELEASED,
-                new Date(),
-                transaction
-            );
-
-            await stockRepository.decrementReservationQuantity(
-                reservation.productId,
-                reservation.warehouseId,
-                reservation.quantity,
-                transaction
-            );
-        })
     }
 
-    return {releaseCount: expiredReservations.length};
+    return { releaseCount: expiredReservations.length };
 }

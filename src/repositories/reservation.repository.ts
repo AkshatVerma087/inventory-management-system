@@ -3,8 +3,8 @@ import { db } from '@/lib/db'
 import { Prisma, ReservationStatus } from "@prisma/client";
 
 
-export async function createReservation(data: Prisma.ReservationUncheckedCreateInput, transaction: Prisma.TransactionClient) {
-    return transaction.reservation.create({ data });
+export async function createReservation(data: Prisma.ReservationUncheckedCreateInput) {
+    return db.reservation.create({ data });
 }
 
 export async function findReservationById(id: string) {
@@ -28,8 +28,8 @@ export async function findReservationByIdempotencyKey(idempotencyKey: string) {
     });
 }
 
-export async function updateReservationStatus(id: string, status: ReservationStatus, timestamp: Date, transaction: Prisma.TransactionClient) {
-    return transaction.reservation.update({
+export async function updateReservationStatus(id: string, status: ReservationStatus, timestamp: Date) {
+    return db.reservation.update({
         where: {
             id
         },

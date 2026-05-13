@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { CreateReservationSchema, ConfirmReservationSchema } from "@/schemas/reservation.schema";
 import * as reservationService from "@/services/reservation.services";
+import { revalidatePath } from "next/cache";
 
 export async function create(req: NextRequest) {
     try {
@@ -32,6 +33,8 @@ export async function create(req: NextRequest) {
             quantity,
             idempotencyKey,
         );
+
+        revalidatePath("/products");
 
         return NextResponse.json(
             {
@@ -97,6 +100,8 @@ export async function confirm(id: string) {
             parsed.data.Id,
         );
 
+        revalidatePath("/products");
+
         return NextResponse.json(
             {
                 success: true,
@@ -109,12 +114,12 @@ export async function confirm(id: string) {
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         return NextResponse.json(
-            { 
-                success: false, 
-                message 
-            }, 
-            { 
-                status: 400 
+            {
+                success: false,
+                message
+            },
+            {
+                status: 400
             }
         );
     }
@@ -141,6 +146,8 @@ export async function release(id: string) {
             parsed.data.Id,
         );
 
+        revalidatePath("/products");
+
         return NextResponse.json(
             {
                 success: true,
@@ -153,11 +160,11 @@ export async function release(id: string) {
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         return NextResponse.json({
-             success: false, 
-             message 
-            }, 
+            success: false,
+            message
+        },
             {
-                status: 400 
+                status: 400
             }
         );
     }
