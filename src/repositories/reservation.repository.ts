@@ -44,7 +44,7 @@ export async function updateReservationStatus(id: string, status: ReservationSta
 }
 
 async function findExpiredReservations(){
-    return db.$transaction.findMany({
+    return db.reservation.findMany({
         where: {
             status: 'PENDING',
             expiredAt: {
