@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import * as warehouseService from "@/services/warehouse.services";
 
-export async function getwarehouses() {
+export async function getWarehouses() {
     try{
-        const warehouses = await warehouseService.getAllWarehouses();
+        const warehouses = await warehouseService.getWarehouses();
 
         return NextResponse.json(
             {

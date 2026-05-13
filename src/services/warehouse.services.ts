@@ -3,7 +3,7 @@ from "@/repositories/warehouse.repositories";
 
 
 
-export async function getAllWarehouses() {
+export async function getWarehouses() {
 
     return await warehouseRepository.findAllWarehouses();
 }
