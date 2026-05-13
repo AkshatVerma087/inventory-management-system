@@ -164,8 +164,12 @@ export async function confirmReservation(reservationId: string) {
 export async function releaseReservation(reservationId: string) {
     const reservation = await reservationRepository.findReservationById(reservationId);
 
-    if(!reservation || reservation.status !== ReservationStatus.PENDING){
-        throw new Error("Reservation not found or cannot be released");
+    if (!reservation) {
+        throw new Error("Reservation not found");
+    }
+
+    if (reservation.status !== ReservationStatus.PENDING) {
+        throw new Error("Reservation is not in PENDING state");
     }
 
     return db.$transaction(async (transaction) => {
