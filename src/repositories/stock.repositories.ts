@@ -1,5 +1,17 @@
-// import {db} from '@/lib/db'
-import { Prisma } from "@prisma/client";
+import { Prisma, StockLevel } from "@prisma/client";
+
+export async function findWithLock(
+    productId: string,
+    warehouseId: string,
+    transaction: Prisma.TransactionClient
+) {
+    return transaction.$queryRaw<StockLevel[]>`
+        SELECT * FROM "StockLevel"
+        WHERE "productId" = ${productId}
+        AND "warehouseId" = ${warehouseId}
+        FOR UPDATE
+    `;
+}
 
 export async function incrementReservationQuantity(
     productId: string,

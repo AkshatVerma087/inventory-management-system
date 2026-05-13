@@ -17,7 +17,7 @@ export async function reserveInventory(
         const cached = await redis.get(idempotencyKey);
 
         if (cached) {
-            return JSON.parse(cached);
+            return typeof cached === 'string' ? JSON.parse(cached) : cached;
         }
     }
 

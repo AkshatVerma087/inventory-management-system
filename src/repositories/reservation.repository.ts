@@ -1,14 +1,13 @@
-import {db} from '@/lib/db'
+import { db } from '@/lib/db'
 
-import {Prisma, ReservationStatus} from "@prisma/client";
-import { timeStamp } from 'console';
-import { includes } from 'zod';
+import { Prisma, ReservationStatus } from "@prisma/client";
 
-export async function createReservation( data: Prisma.ReservationCreateInput, transaction: Prisma.TransactionClient) {
+
+export async function createReservation(data: Prisma.ReservationUncheckedCreateInput, transaction: Prisma.TransactionClient) {
     return transaction.reservation.create({ data });
 }
 
-export async function findReservationById(id: string){
+export async function findReservationById(id: string) {
     return await db.reservation.findUnique({
         where: {
             id
@@ -21,7 +20,7 @@ export async function findReservationById(id: string){
 }
 
 
-export async function findReservationByIdempotencyKey(idempotencyKey: string){
+export async function findReservationByIdempotencyKey(idempotencyKey: string) {
     return await db.reservation.findUnique({
         where: {
             idempotencyKey
@@ -29,7 +28,7 @@ export async function findReservationByIdempotencyKey(idempotencyKey: string){
     });
 }
 
-export async function updateReservationStatus(id: string, status: ReservationStatus, timestamp: Date, transaction: Prisma.TransactionClient){
+export async function updateReservationStatus(id: string, status: ReservationStatus, timestamp: Date, transaction: Prisma.TransactionClient) {
     return transaction.reservation.update({
         where: {
             id
@@ -43,11 +42,11 @@ export async function updateReservationStatus(id: string, status: ReservationSta
     })
 }
 
-async function findExpiredReservations(){
+export async function findExpiredReservations() {
     return db.reservation.findMany({
         where: {
             status: 'PENDING',
-            expiredAt: {
+            expiresAt: {
                 lt: new Date()
             }
         },
