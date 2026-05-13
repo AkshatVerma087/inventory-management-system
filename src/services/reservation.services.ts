@@ -5,7 +5,7 @@ import * as reservationRepository from "@/repositories/reservation.repository";
 import { withLock } from "@/lib/lock";
 import { ReservationStatus } from "@prisma/client";
 
-import redis from "@/lib/redis";
+import { redis } from "@/lib/redis";
 
 export async function reserveInventory(
     productId: string,
