@@ -4,7 +4,7 @@ import {Prisma, ReservationStatus} from "@prisma/client";
 import { timeStamp } from 'console';
 import { includes } from 'zod';
 
-export async function CreateReservation( data: Prisma.ReservationCreateInput, transaction: Prisma.TransactionClient) {
+export async function createReservation( data: Prisma.ReservationCreateInput, transaction: Prisma.TransactionClient) {
     return transaction.reservation.create({ data });
 }
 
