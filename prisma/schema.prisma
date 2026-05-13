@@ -13,16 +13,16 @@ model Product {
   price        Decimal       @db.Decimal(10, 2)
   imageUrl     String
   description  String
-  stockLevels   StockLevel[]
-  reservations  Reservation[]
+  stockLevels  StockLevel[]
+  reservations Reservation[]
 }
 
 model Warehouse {
-  id            String        @id @default(cuid())
-  name          String
-  location      String
-  stockLevels   StockLevel[]
-  reservations  Reservation[]
+  id           String        @id @default(cuid())
+  name         String
+  location     String
+  stockLevels  StockLevel[]
+  reservations Reservation[]
 }
 
 model StockLevel {
@@ -45,17 +45,17 @@ enum ReservationStatus {
 }
 
 model Reservation {
-  id             String             @id @default(cuid())
+  id             String            @id @default(cuid())
   productId      String
   warehouseId    String
   quantity       Int
-  status         ReservationStatus   @default(PENDING)
+  status         ReservationStatus @default(PENDING)
   expiresAt      DateTime
-  idempotencyKey String?             @unique
+  idempotencyKey String?           @unique
   confirmedAt    DateTime?
   releasedAt     DateTime?
-  product        Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
-  warehouse      Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse      Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
 
   @@index([status, expiresAt])
   @@index([productId, warehouseId, status])
